@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "mode": "normal",
+  "triggerScope": "global",
+  "includeLinkedImages": true,
+  "moveHotkey": "none",
+  "switchHotkey": "ctrl",
+  "moveSpeed": 30,
+  "pinMaximum": 3,
+  "pinCoverMode": true,
+  "showImageTooltip": true,
+  "uiLanguage": "zh",
+  "imageBorderEnabled": false,
+  "imageBorderWidth": "medium",
+  "imageBorderStyle": "solid",
+  "imageBorderColor": "var(--interactive-accent)",
+  "gallery": {
+    "enabled": true,
+    "backgroundColor": "rgba(0, 0, 0, 0.45)",
+    "hoverColor": "rgba(0, 0, 0, 0.6)",
+    "activeBorderColor": "var(--interactive-accent)",
+    "highlightActiveBorder": true
+  },
+  "interaction": {
+    "enableMobileGestures": true,
+    "enableDoubleTapZoom": true,
+    "longPressMenuMs": 450
+  },
+  "backgroundColor": "rgba(69,219,172,0)",
+  "triggerHotkey": "none",
+  "fullscreenMode": "fit"
+}

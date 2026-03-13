@@ -1,0 +1,162 @@
+/* Root overlay container */
+.oip-overlay-root {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1000;
+  --oip-corner-radius: 6px;
+}
+
+/* Modal mask for normal mode */
+.oip-overlay-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  pointer-events: auto;
+}
+
+/* Single preview shell */
+.oip-preview-shell {
+  position: absolute;
+  max-width: none;
+  max-height: none;
+  user-select: none;
+  pointer-events: auto;
+}
+
+/* Active preview hint (only around image area) */
+.oip-preview-shell.is-active .oip-preview-image {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 2px;
+}
+
+/* Rendered image */
+.oip-preview-image {
+  display: block;
+  transform-origin: 0 0;
+  touch-action: none;
+  background: transparent;
+  border-radius: var(--oip-corner-radius);
+}
+
+/* Footer toolbar */
+.oip-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border-radius: var(--oip-corner-radius);
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  margin-top: 8px;
+  box-shadow: var(--shadow-s);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Normal mode toolbar stays fixed at viewport bottom, independent from image zoom */
+.oip-preview-shell:not(.oip-pin-shell) .oip-toolbar {
+  position: fixed;
+  left: 50%;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  margin-top: 0;
+  transform: translateX(-50%);
+  max-width: min(92vw, 960px);
+  z-index: 2100;
+}
+
+/* Lift toolbar when gallery strip is visible */
+.oip-overlay-root.oip-has-gallery .oip-preview-shell:not(.oip-pin-shell) .oip-toolbar {
+  bottom: max(76px, calc(64px + env(safe-area-inset-bottom)));
+}
+
+/* Toolbar button */
+.oip-toolbar-btn {
+  border: none;
+  border-radius: var(--oip-corner-radius);
+  padding: 6px 8px;
+  background: var(--background-secondary);
+  color: var(--text-normal);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+/* Toolbar button hover */
+.oip-toolbar-btn:hover {
+  background: var(--background-secondary-alt);
+}
+
+/* Caption block under image */
+.oip-image-caption-block {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  max-width: min(92vw, 480px);
+}
+
+/* Image file name under the image, separate from action buttons */
+.oip-image-caption {
+  padding: 4px 8px;
+  border-radius: var(--oip-corner-radius);
+  background: var(--background-primary-alt);
+  border: 1px solid var(--background-modifier-border);
+  font-size: 12px;
+  color: var(--text-muted);
+  max-width: min(92vw, 480px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* Clickable caption hover */
+.oip-image-caption:hover {
+  background: var(--background-secondary);
+  border-color: var(--interactive-accent);
+}
+
+/* Gallery strip */
+.oip-gallery {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  border-radius: var(--oip-corner-radius);
+  background: rgba(0, 0, 0, 0.45);
+  max-width: 85vw;
+  overflow-x: auto;
+  pointer-events: auto;
+}
+
+/* Gallery item */
+.oip-gallery-item {
+  width: 46px;
+  height: 46px;
+  border-radius: var(--oip-corner-radius);
+  overflow: hidden;
+  border: 2px solid transparent;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+/* Gallery active item */
+.oip-gallery-item.is-active {
+  border-color: var(--interactive-accent);
+}
+
+/* Gallery image */
+.oip-gallery-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Pin-mode floating shell shadow */
+.oip-pin-shell {
+  box-shadow: var(--shadow-l);
+}
