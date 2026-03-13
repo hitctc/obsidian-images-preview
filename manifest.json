@@ -3,7 +3,7 @@
   "name": "Images Preview",
   "version": "0.1.0",
   "minAppVersion": "1.8.7",
-  "description": "点击笔记图片，可打开一个功能强大的弹出预览窗口，支持缩放、变换、画廊模式以及移动设备手势操作。",
+  "description": "Click note images to open a powerful popup preview with zoom, transform, gallery, and mobile gestures.",
   "author": "tctc",
   "authorUrl": "https://github.com/hitctc",
   "isDesktopOnly": false
