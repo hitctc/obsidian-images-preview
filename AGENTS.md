@@ -30,10 +30,13 @@
 - 类型检查：`npm run typecheck`
 - 单测（交互模式）：`npm run test`
 - 单测（一次性）：`npm run test:run`
+- ESLint 检查：`npm run lint`
+- ESLint 自动修复：`npm run lint:fix`
 
 执行建议（最快相关检查优先）：
 
 - 仅改类型或逻辑时：先跑 `npm run typecheck`，再跑 `npm run test:run`。
+- 改动涉及 API 使用或 DOM 样式写法时：补跑 `npm run lint`，提前发现 Obsidian 提审风险。
 - 改 `src/`、`styles.css`、`manifest.json` 并准备交付时：补跑 `npm run build`，确保 `main.js` 同步。
 
 ## 4. 协作编码约定
@@ -62,6 +65,7 @@
 - 变更范围与需求一致，无额外重构噪音。
 - 受影响测试已更新并通过。
 - `npm run typecheck` 通过。
+- `npm run lint` 通过（若本次改动涉及 TS/DOM/API 规范）。
 - `npm run test:run` 通过。
 - 若涉及发布产物，`npm run build` 已执行且产物同步。
 - 若涉及设置项、命令、文案、样式或清单元数据，文档已同步更新（含本文件）。
@@ -102,3 +106,4 @@
 - 2026-03-13：修复背景色选择器弹层被裁切与选色后立即关闭问题（分离预览文案节点、提升 popup 层级、补充设置页回归测试）。
 - 2026-03-13：为“键盘移动速度”滑块新增实时速度值说明，并补充 i18n 键与测试断言。
 - 2026-03-13：移除图片背景色选择功能（设置项、依赖、样式与专属测试），预览图片背景回退为固定透明。
+- 2026-03-14：新增 ESLint 基础配置与 `eslint-plugin-obsidian` 集成，补充 `lint/lint:fix` 命令与提交流程检查项。

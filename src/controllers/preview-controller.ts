@@ -1,4 +1,11 @@
-import { Menu, Notice, type App, type Plugin, type WorkspaceWindow } from "obsidian";
+import {
+  MarkdownView,
+  Menu,
+  Notice,
+  type App,
+  type Plugin,
+  type WorkspaceWindow
+} from "obsidian";
 import { t } from "../i18n";
 import { InputAdapter } from "../input/input-adapter";
 import { ImageTransformEngine } from "../core/image-transform-engine";
@@ -114,8 +121,8 @@ export class PreviewController {
    * 命令：在当前视图打开预览。
    */
   public async openPreviewAtActiveImage(): Promise<void> {
-    const activeLeaf = this.app.workspace.activeLeaf;
-    const container = activeLeaf?.view?.containerEl;
+    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+    const container = activeView?.containerEl;
     if (!container) {
       new Notice(t("notice.noImage", this.app));
       return;
@@ -219,7 +226,7 @@ export class PreviewController {
       if (!image || !this.isTargetImage(image)) {
         return;
       }
-      image.style.cursor = "zoom-in";
+      image.classList.add("oip-clickable-image");
     });
 
     this.plugin.registerDomEvent(doc, "keydown", (event: KeyboardEvent) => {

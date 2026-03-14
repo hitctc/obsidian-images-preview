@@ -12,12 +12,19 @@
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.55);
+  display: none;
   pointer-events: auto;
+}
+
+.oip-overlay-mask.is-visible {
+  display: block;
 }
 
 /* Single preview shell */
 .oip-preview-shell {
   position: absolute;
+  left: var(--oip-left, 0px);
+  top: var(--oip-top, 0px);
   max-width: none;
   max-height: none;
   user-select: none;
@@ -33,10 +40,15 @@
 /* Rendered image */
 .oip-preview-image {
   display: block;
+  transform: var(--oip-image-transform, none);
   transform-origin: 0 0;
   touch-action: none;
   background: transparent;
   border-radius: var(--oip-corner-radius);
+}
+
+.oip-clickable-image {
+  cursor: zoom-in;
 }
 
 /* Footer toolbar */
@@ -127,7 +139,7 @@
   gap: 8px;
   padding: 8px;
   border-radius: var(--oip-corner-radius);
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--oip-gallery-bg, rgba(0, 0, 0, 0.45));
   max-width: 85vw;
   overflow-x: auto;
   pointer-events: auto;
@@ -146,7 +158,7 @@
 
 /* Gallery active item */
 .oip-gallery-item.is-active {
-  border-color: var(--interactive-accent);
+  border-color: var(--oip-gallery-active-border, var(--interactive-accent));
 }
 
 /* Gallery image */

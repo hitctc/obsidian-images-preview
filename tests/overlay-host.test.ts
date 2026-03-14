@@ -12,6 +12,7 @@ function installObsidianDomHelpers(): void {
     removeClass?: (...classNames: string[]) => void;
     toggleClass?: (className: string, force?: boolean) => void;
     setText?: (text: string) => void;
+    setCssProps?: (props: Record<string, string>) => void;
   };
 
   if (!elementProto.addClass) {
@@ -39,6 +40,12 @@ function installObsidianDomHelpers(): void {
   if (!elementProto.setText) {
     elementProto.setText = function (text: string): void {
       this.textContent = text;
+    };
+  }
+
+  if (!elementProto.setCssProps) {
+    elementProto.setCssProps = function (props: Record<string, string>): void {
+      Object.entries(props).forEach(([key, value]) => this.style.setProperty(key, value));
     };
   }
 }
@@ -85,6 +92,60 @@ afterEach(() => {
 });
 
 describe("OverlayHost", () => {
+  it("marks mask as visible in normal mode", () => {
+    const host = new OverlayHost({} as never, document);
+    const settings = createSettings();
+    const item = createItems()[0];
+
+    host.openPreview({
+      item,
+      settings,
+      mode: PreviewMode.Normal,
+      activeIndex: 0,
+      allItems: [item],
+      onToolbarAction: () => undefined,
+      onGallerySelect: () => undefined,
+      onMaskClick: () => undefined
+    });
+
+    const mask = document.querySelector(".oip-overlay-mask");
+    expect(mask?.classList.contains("is-visible")).toBe(true);
+
+    host.destroy();
+  });
+
+  it("stores shell position in css custom properties", () => {
+    const host = new OverlayHost({} as never, document);
+    const settings = createSettings();
+    const item = createItems()[0];
+
+    const preview = host.openPreview({
+      item,
+      settings,
+      mode: PreviewMode.Normal,
+      activeIndex: 0,
+      allItems: [item],
+      onToolbarAction: () => undefined,
+      onGallerySelect: () => undefined,
+      onMaskClick: () => undefined
+    });
+
+    host.applyState(preview.id, {
+      naturalWidth: 100,
+      naturalHeight: 80,
+      width: 120,
+      height: 90,
+      left: 24,
+      top: 16,
+      zoomRatio: 1
+    });
+
+    expect(preview.shellEl.style.getPropertyValue("--oip-left")).toBe("24px");
+    expect(preview.shellEl.style.getPropertyValue("--oip-top")).toBe("16px");
+
+    host.destroy();
+  });
+
   it("adds root gallery class when gallery is rendered", () => {
     const host = new OverlayHost({} as never, document);
     const settings = createSettings();

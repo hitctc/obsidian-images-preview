@@ -120,12 +120,14 @@ export class OverlayHost {
 
     preview.state = state;
 
-    preview.shellEl.style.left = `${state.left}px`;
-    preview.shellEl.style.top = `${state.top}px`;
+    preview.shellEl.setCssProps({
+      "--oip-left": `${state.left}px`,
+      "--oip-top": `${state.top}px`
+    });
 
     preview.imageEl.style.width = `${state.width}px`;
     preview.imageEl.style.height = `${state.height}px`;
-    preview.imageEl.style.transform = "none";
+    preview.imageEl.setCssProps({ "--oip-image-transform": "none" });
     preview.captionEl.setText(this.resolveImageFileName(preview.item));
   }
 
@@ -241,7 +243,6 @@ export class OverlayHost {
 
     this.maskEl = this.doc.createElement("div");
     this.maskEl.addClass("oip-overlay-mask");
-    this.maskEl.style.display = "none";
 
     this.doc.body.appendChild(this.rootEl);
     this.rootEl.appendChild(this.maskEl);
@@ -261,7 +262,7 @@ export class OverlayHost {
     }
 
     if (mode === Mode.Normal) {
-      this.maskEl.style.display = "block";
+      this.maskEl.toggleClass("is-visible", true);
       const handler = (): void => onMaskClick();
       this.maskEl.addEventListener("click", handler);
       this.detachMaskClick = () => this.maskEl?.removeEventListener("click", handler);
@@ -282,7 +283,7 @@ export class OverlayHost {
       this.detachMaskClick();
       this.detachMaskClick = null;
     }
-    this.maskEl.style.display = "none";
+    this.maskEl.toggleClass("is-visible", false);
   }
 
   /**
@@ -294,8 +295,6 @@ export class OverlayHost {
     if (mode === Mode.Pin) {
       shell.addClass("oip-pin-shell");
     }
-    shell.style.left = "0px";
-    shell.style.top = "0px";
     return shell;
   }
 
@@ -440,7 +439,11 @@ export class OverlayHost {
 
     this.galleryEl = this.doc.createElement("div");
     this.galleryEl.addClass("oip-gallery");
-    this.galleryEl.style.backgroundColor = settings.gallery.backgroundColor;
+    this.galleryEl.setCssProps({
+      "--oip-gallery-bg": settings.gallery.backgroundColor,
+      "--oip-gallery-hover": settings.gallery.hoverColor,
+      "--oip-gallery-active-border": settings.gallery.activeBorderColor
+    });
     this.rootEl.addClass("oip-has-gallery");
 
     allItems.forEach((item, index) => {
@@ -448,7 +451,6 @@ export class OverlayHost {
       wrapper.addClass("oip-gallery-item");
       if (index === activeIndex) {
         wrapper.addClass("is-active");
-        wrapper.style.borderColor = settings.gallery.activeBorderColor;
       }
       wrapper.addEventListener("click", (event) => {
         event.preventDefault();

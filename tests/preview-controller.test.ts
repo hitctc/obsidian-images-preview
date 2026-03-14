@@ -21,7 +21,12 @@ function createController(
   pluginOverrides?: Partial<{
     registerDomEvent: (...args: unknown[]) => void;
     registerEvent: (...args: unknown[]) => void;
-  }>
+  }>,
+  appMock: unknown = {
+    workspace: {
+      getActiveViewOfType: () => null
+    }
+  }
 ): PreviewController {
   const settings = createSettings();
   const pluginMock = {
@@ -29,7 +34,7 @@ function createController(
     registerEvent: () => undefined,
     ...pluginOverrides
   };
-  return new PreviewController({} as never, pluginMock as never, () => settings);
+  return new PreviewController(appMock as never, pluginMock as never, () => settings);
 }
 
 describe("PreviewController", () => {
@@ -94,6 +99,30 @@ describe("PreviewController", () => {
 
     const resolved = (controller as any).resolveImageFromMouseEvent(document, event);
     expect(resolved).toBe(image);
+  });
+
+  it("opens active image from active view container", async () => {
+    const container = document.createElement("div");
+    const image = document.createElement("img");
+    image.src = "https://img.example/active.png";
+    container.appendChild(image);
+
+    const getActiveViewOfType = vi.fn().mockReturnValue({
+      containerEl: container
+    });
+    const controller = createController(undefined, {
+      workspace: { getActiveViewOfType }
+    });
+    const openSpy = vi.fn().mockResolvedValue(undefined);
+
+    (controller as any).selector = "img";
+    (controller as any).openFromImage = openSpy;
+
+    await controller.openPreviewAtActiveImage();
+
+    expect(getActiveViewOfType).toHaveBeenCalledOnce();
+    expect(openSpy).toHaveBeenCalledOnce();
+    expect(openSpy).toHaveBeenCalledWith(document, image);
   });
 
   it("keeps image matching safe when selector is invalid", () => {
