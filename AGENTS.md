@@ -27,6 +27,8 @@
 - 安装依赖：`npm install`
 - 开发监听构建：`npm run dev`
 - 生产构建：`npm run build`
+- 监听构建并同步到 Vault：`npm run dev:vault`（需先设置 `OBSIDIAN_VAULT_DIR`）
+- 生产构建并同步到 Vault：`npm run build:vault`（需先设置 `OBSIDIAN_VAULT_DIR`）
 - 类型检查：`npm run typecheck`
 - 单测（交互模式）：`npm run test`
 - 单测（一次性）：`npm run test:run`
@@ -36,6 +38,7 @@
 执行建议（最快相关检查优先）：
 
 - 仅改类型或逻辑时：先跑 `npm run typecheck`，再跑 `npm run test:run`。
+- 改动需要在 Obsidian 实际仓库验证时：优先跑 `npm run build:vault`，确认插件目录为真实文件而非软链接。
 - 改动涉及 API 使用或 DOM 样式写法时：补跑 `npm run lint`，提前发现 Obsidian 提审风险。
 - 改 `src/`、`styles.css`、`manifest.json` 并准备交付时：补跑 `npm run build`，确保 `main.js` 同步。
 
@@ -107,3 +110,4 @@
 - 2026-03-13：为“键盘移动速度”滑块新增实时速度值说明，并补充 i18n 键与测试断言。
 - 2026-03-13：移除图片背景色选择功能（设置项、依赖、样式与专属测试），预览图片背景回退为固定透明。
 - 2026-03-14：新增 ESLint 基础配置与 `eslint-plugin-obsidian` 集成，补充 `lint/lint:fix` 命令与提交流程检查项。
+- 2026-03-16：新增 `dev:vault/build:vault` 无软链接部署命令，支持构建后自动同步到 Vault 插件目录并清理同名软链接。

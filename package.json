@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "build": "node esbuild.config.mjs production",
+    "dev:vault": "OBSIDIAN_VAULT_DIR=\"${OBSIDIAN_VAULT_DIR:?Please set OBSIDIAN_VAULT_DIR}\" node esbuild.config.mjs",
+    "build:vault": "OBSIDIAN_VAULT_DIR=\"${OBSIDIAN_VAULT_DIR:?Please set OBSIDIAN_VAULT_DIR}\" node esbuild.config.mjs production",
     "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:run": "vitest run",

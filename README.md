@@ -95,18 +95,6 @@ mkdir -p <your-vault>/.obsidian/plugins/images-preview
 - `设置 -> 第三方插件 -> 已安装插件`
 - 启用 **Images Preview**
 
-### 方式 B：开发联调安装
-
-1. 克隆仓库到插件目录（或软链接到插件目录）。
-2. 安装依赖并启动开发构建：
-
-```bash
-npm install
-npm run dev
-```
-
-3. 在 Obsidian 中重载插件。
-
 ## 快速上手
 
 1. 打开任意包含图片的笔记。
@@ -133,6 +121,8 @@ npm run test:run
 # 单元测试（交互模式）
 npm run test
 ```
+
+内部开发与多设备无软链接部署流程请见：`docs/DEVELOPMENT.md`。
 
 ## 项目结构
 
