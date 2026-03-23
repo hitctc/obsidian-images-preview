@@ -1,6 +1,6 @@
 {
   "name": "obsidian-images-preview",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Obsidian popup image preview plugin with enhanced toolkit features.",
   "main": "main.js",
   "scripts": {
