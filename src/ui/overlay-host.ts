@@ -37,6 +37,8 @@ export class OverlayHost {
   private previews = new Map<string, MountedPreview>();
   private detachMaskClick: (() => void) | null = null;
   private activePreviewId: string | null = null;
+  private toastEl: HTMLDivElement | null = null;
+  private toastTimer: number | null = null;
 
   /**
    * 构造宿主。
@@ -107,6 +109,38 @@ export class OverlayHost {
     onSelect: (index: number) => void
   ): void {
     this.updateGallery(settings, allItems, activeIndex, onSelect);
+  }
+
+  /**
+   * 在预览根节点内显示轻量提示，保证提示位于蒙层之上。
+   * 新提示会替换旧提示，并在短暂展示后自动移除。
+   */
+  public showToast(message: string): void {
+    this.hideToast();
+    this.ensureRoot();
+
+    const toast = this.doc.createElement("div");
+    toast.addClass("oip-toast");
+    toast.setText(message);
+    this.rootEl?.appendChild(toast);
+    this.toastEl = toast;
+
+    const view = this.doc.defaultView;
+    if (view) {
+      this.toastTimer = view.setTimeout(() => this.hideToast(), 2200);
+    }
+  }
+
+  /**
+   * 移除当前轻量提示并清理自动隐藏计时器。
+   */
+  private hideToast(): void {
+    if (this.toastTimer !== null) {
+      this.doc.defaultView?.clearTimeout(this.toastTimer);
+      this.toastTimer = null;
+    }
+    this.toastEl?.remove();
+    this.toastEl = null;
   }
 
   /**
@@ -184,6 +218,7 @@ export class OverlayHost {
     if (this.previews.size === 0) {
       this.hideMask();
       this.removeGallery();
+      this.hideToast();
     }
   }
 
@@ -206,6 +241,7 @@ export class OverlayHost {
     this.activePreviewId = null;
     this.hideMask();
     this.removeGallery();
+    this.hideToast();
   }
 
   /**

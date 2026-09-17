@@ -1,9 +1,12 @@
-import { Notice } from "obsidian";
-import { t } from "../i18n";
 import type { App } from "obsidian";
 
 /**
- * 复制服务，统一处理成功/失败提示与降级策略。
+ * 图片复制结果，供控制器选择对应的界面反馈。
+ */
+export type CopyImageResult = "image" | "url" | "failed";
+
+/**
+ * 复制服务，只负责执行复制和返回结果，不直接创建界面提示。
  */
 export class ClipboardService {
   private readonly app: App;
@@ -16,23 +19,20 @@ export class ClipboardService {
   }
 
   /**
-   * 复制图片；失败时降级复制 URL。
+   * 复制图片；失败时降级复制 URL，由调用方负责展示结果提示。
    */
-  public async copyImageOrUrl(imgEl: HTMLImageElement): Promise<boolean> {
+  public async copyImageOrUrl(imgEl: HTMLImageElement): Promise<CopyImageResult> {
     const copiedImage = await this.copyImage(imgEl);
     if (copiedImage) {
-      new Notice(t("notice.copySuccess", this.app));
-      return true;
+      return "image";
     }
 
     const copiedUrl = await this.copyPlainText(imgEl.src);
     if (copiedUrl) {
-      new Notice(`${t("notice.copyFailed", this.app)} URL copied instead.`);
-      return true;
+      return "url";
     }
 
-    new Notice(t("notice.copyFailed", this.app));
-    return false;
+    return "failed";
   }
 
   /**

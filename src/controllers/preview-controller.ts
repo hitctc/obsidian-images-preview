@@ -10,7 +10,7 @@ import { t } from "../i18n";
 import { InputAdapter } from "../input/input-adapter";
 import { ImageTransformEngine } from "../core/image-transform-engine";
 import { PreviewStateMachine } from "../core/preview-state-machine";
-import { ClipboardService } from "../services/clipboard-service";
+import { ClipboardService, type CopyImageResult } from "../services/clipboard-service";
 import { GalleryService } from "../services/gallery-service";
 import { OverlayHost } from "../ui/overlay-host";
 import {
@@ -206,7 +206,7 @@ export class PreviewController {
       doc,
       "click",
       async (event: MouseEvent) => {
-        const image = this.resolveImageFromMouseEvent(doc, event);
+        const image = this.resolveImageFromMouseEvent(event);
         if (!image) {
           return;
         }
@@ -395,7 +395,7 @@ export class PreviewController {
         );
         break;
       case "copy":
-        void this.clipboardService.copyImageOrUrl(preview.imageEl);
+        void this.copyPreviewImage(previewId, preview.imageEl);
         break;
       case "copy-name":
         void this.copyImageName(preview.captionEl.textContent ?? "");
@@ -590,6 +590,38 @@ export class PreviewController {
   }
 
   /**
+   * 复制预览图片并在预览层内展示结果。
+   * 异步复制期间如果预览已关闭，则丢弃结果，避免重新创建已销毁的界面。
+   */
+  private async copyPreviewImage(previewId: string, imageEl: HTMLImageElement): Promise<void> {
+    const runtime = this.runtimes.get(previewId);
+    if (!runtime) {
+      return;
+    }
+
+    const result = await this.clipboardService.copyImageOrUrl(imageEl);
+    if (!this.runtimes.has(previewId)) {
+      return;
+    }
+
+    const message = this.getCopyMessage(result);
+    this.hosts.get(runtime.doc)?.showToast(message);
+  }
+
+  /**
+   * 将复制结果转换为当前界面的本地化提示文案。
+   */
+  private getCopyMessage(result: CopyImageResult): string {
+    if (result === "image") {
+      return t("notice.copySuccess", this.app);
+    }
+    if (result === "url") {
+      return `${t("notice.copyFailed", this.app)} URL copied instead.`;
+    }
+    return t("notice.copyFailed", this.app);
+  }
+
+  /**
    * 右键/长按打开菜单。
    */
   private showContextMenu(previewId: string, clientX: number, clientY: number): void {
@@ -635,6 +667,13 @@ export class PreviewController {
     if (event.key === "Escape") {
       event.preventDefault();
       this.closePreview(active.id);
+      return;
+    }
+
+    // Ctrl+C（Windows/Linux）或 Cmd+C（macOS）复用工具栏的图片复制逻辑。
+    if (event.key.toLowerCase() === "c" && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      this.handleToolbarAction(active.id, "copy");
       return;
     }
 
@@ -830,9 +869,10 @@ export class PreviewController {
 
   /**
    * 从鼠标事件中解析目标图片。
-   * 优先走 target/composedPath，最后回退到 elementFromPoint。
+   * 只接受事件目标或事件路径中的图片，避免 Obsidian 图片缩放控件的点击
+   * 在 elementFromPoint 反查时误命中图片并打开预览。
    */
-  private resolveImageFromMouseEvent(doc: Document, event: MouseEvent): HTMLImageElement | null {
+  private resolveImageFromMouseEvent(event: MouseEvent): HTMLImageElement | null {
     const target = event.target;
     if (target instanceof HTMLImageElement) {
       return target;
@@ -850,17 +890,6 @@ export class PreviewController {
         if (node instanceof HTMLImageElement) {
           return node;
         }
-      }
-    }
-
-    const hit = doc.elementFromPoint(event.clientX, event.clientY);
-    if (hit instanceof HTMLImageElement) {
-      return hit;
-    }
-    if (hit instanceof Element) {
-      const closest = hit.closest("img");
-      if (closest instanceof HTMLImageElement) {
-        return closest;
       }
     }
 

@@ -192,6 +192,33 @@ describe("OverlayHost", () => {
     host.destroy();
   });
 
+  it("renders toast inside the overlay and removes it on destroy", () => {
+    const host = new OverlayHost({} as never, document);
+    const settings = createSettings();
+    const item = createItems()[0];
+
+    host.openPreview({
+      item,
+      settings,
+      mode: PreviewMode.Normal,
+      activeIndex: 0,
+      allItems: [item],
+      onToolbarAction: () => undefined,
+      onGallerySelect: () => undefined,
+      onMaskClick: () => undefined
+    });
+    host.showToast("Image copied.");
+
+    const root = document.querySelector(".oip-overlay-root");
+    const toast = document.querySelector(".oip-toast");
+
+    expect(toast?.textContent).toBe("Image copied.");
+    expect(toast?.parentElement).toBe(root);
+
+    host.destroy();
+    expect(document.querySelector(".oip-toast")).toBeNull();
+  });
+
   it("shows file name and allows click-to-copy on caption", () => {
     const host = new OverlayHost({} as never, document);
     const settings = createSettings();

@@ -23,7 +23,7 @@ __export(main_exports, {
   default: () => ImagesPreviewPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian5 = require("obsidian");
+var import_obsidian4 = require("obsidian");
 
 // src/i18n.ts
 var LOCALES = {
@@ -127,7 +127,7 @@ function t(key, app) {
 }
 
 // src/controllers/preview-controller.ts
-var import_obsidian3 = require("obsidian");
+var import_obsidian2 = require("obsidian");
 
 // src/input/input-adapter.ts
 var _InputAdapter = class _InputAdapter {
@@ -540,7 +540,6 @@ var PreviewStateMachine = class {
 };
 
 // src/services/clipboard-service.ts
-var import_obsidian = require("obsidian");
 var ClipboardService = class {
   /**
    * 构造复制服务。
@@ -549,21 +548,18 @@ var ClipboardService = class {
     this.app = app;
   }
   /**
-   * 复制图片；失败时降级复制 URL。
+   * 复制图片；失败时降级复制 URL，由调用方负责展示结果提示。
    */
   async copyImageOrUrl(imgEl) {
     const copiedImage = await this.copyImage(imgEl);
     if (copiedImage) {
-      new import_obsidian.Notice(t("notice.copySuccess", this.app));
-      return true;
+      return "image";
     }
     const copiedUrl = await this.copyPlainText(imgEl.src);
     if (copiedUrl) {
-      new import_obsidian.Notice(`${t("notice.copyFailed", this.app)} URL copied instead.`);
-      return true;
+      return "url";
     }
-    new import_obsidian.Notice(t("notice.copyFailed", this.app));
-    return false;
+    return "failed";
   }
   /**
    * 优先尝试复制二进制图片。
@@ -634,7 +630,7 @@ var ClipboardService = class {
 };
 
 // src/services/gallery-service.ts
-var import_obsidian2 = require("obsidian");
+var import_obsidian = require("obsidian");
 var GalleryService = class {
   /**
    * 构造画廊服务。
@@ -707,7 +703,7 @@ var GalleryService = class {
    * 回退方案：从当前 Markdown 文件文本解析图片。
    */
   async collectFromActiveMarkdown(sourceImage) {
-    const activeView = this.app.workspace.getActiveViewOfType(import_obsidian2.MarkdownView);
+    const activeView = this.app.workspace.getActiveViewOfType(import_obsidian.MarkdownView);
     const file = activeView?.file;
     if (!activeView || !file) {
       return { items: [], activeIndex: -1 };
@@ -816,6 +812,8 @@ var OverlayHost = class {
     this.previews = /* @__PURE__ */ new Map();
     this.detachMaskClick = null;
     this.activePreviewId = null;
+    this.toastEl = null;
+    this.toastTimer = null;
     this.app = app;
     this.doc = doc;
   }
@@ -868,6 +866,34 @@ var OverlayHost = class {
    */
   renderGallery(settings, allItems, activeIndex, onSelect) {
     this.updateGallery(settings, allItems, activeIndex, onSelect);
+  }
+  /**
+   * 在预览根节点内显示轻量提示，保证提示位于蒙层之上。
+   * 新提示会替换旧提示，并在短暂展示后自动移除。
+   */
+  showToast(message) {
+    this.hideToast();
+    this.ensureRoot();
+    const toast = this.doc.createElement("div");
+    toast.addClass("oip-toast");
+    toast.setText(message);
+    this.rootEl?.appendChild(toast);
+    this.toastEl = toast;
+    const view = this.doc.defaultView;
+    if (view) {
+      this.toastTimer = view.setTimeout(() => this.hideToast(), 2200);
+    }
+  }
+  /**
+   * 移除当前轻量提示并清理自动隐藏计时器。
+   */
+  hideToast() {
+    if (this.toastTimer !== null) {
+      this.doc.defaultView?.clearTimeout(this.toastTimer);
+      this.toastTimer = null;
+    }
+    this.toastEl?.remove();
+    this.toastEl = null;
   }
   /**
    * 更新预览渲染状态。
@@ -934,6 +960,7 @@ var OverlayHost = class {
     if (this.previews.size === 0) {
       this.hideMask();
       this.removeGallery();
+      this.hideToast();
     }
   }
   /**
@@ -954,6 +981,7 @@ var OverlayHost = class {
     this.activePreviewId = null;
     this.hideMask();
     this.removeGallery();
+    this.hideToast();
   }
   /**
    * 读取当前预览数量。
@@ -1250,15 +1278,15 @@ var _PreviewController = class _PreviewController {
    * 命令：在当前视图打开预览。
    */
   async openPreviewAtActiveImage() {
-    const activeView = this.app.workspace.getActiveViewOfType(import_obsidian3.MarkdownView);
+    const activeView = this.app.workspace.getActiveViewOfType(import_obsidian2.MarkdownView);
     const container = activeView?.containerEl;
     if (!container) {
-      new import_obsidian3.Notice(t("notice.noImage", this.app));
+      new import_obsidian2.Notice(t("notice.noImage", this.app));
       return;
     }
     const candidate = container.querySelector(this.selector);
     if (!candidate) {
-      new import_obsidian3.Notice(t("notice.noImage", this.app));
+      new import_obsidian2.Notice(t("notice.noImage", this.app));
       return;
     }
     await this.openFromImage(candidate.ownerDocument, candidate);
@@ -1325,7 +1353,7 @@ var _PreviewController = class _PreviewController {
       doc,
       "click",
       async (event) => {
-        const image = this.resolveImageFromMouseEvent(doc, event);
+        const image = this.resolveImageFromMouseEvent(event);
         if (!image) {
           return;
         }
@@ -1483,7 +1511,7 @@ var _PreviewController = class _PreviewController {
         );
         break;
       case "copy":
-        void this.clipboardService.copyImageOrUrl(preview.imageEl);
+        void this.copyPreviewImage(previewId, preview.imageEl);
         break;
       case "copy-name":
         void this.copyImageName(preview.captionEl.textContent ?? "");
@@ -1655,6 +1683,34 @@ var _PreviewController = class _PreviewController {
     );
   }
   /**
+   * 复制预览图片并在预览层内展示结果。
+   * 异步复制期间如果预览已关闭，则丢弃结果，避免重新创建已销毁的界面。
+   */
+  async copyPreviewImage(previewId, imageEl) {
+    const runtime = this.runtimes.get(previewId);
+    if (!runtime) {
+      return;
+    }
+    const result = await this.clipboardService.copyImageOrUrl(imageEl);
+    if (!this.runtimes.has(previewId)) {
+      return;
+    }
+    const message = this.getCopyMessage(result);
+    this.hosts.get(runtime.doc)?.showToast(message);
+  }
+  /**
+   * 将复制结果转换为当前界面的本地化提示文案。
+   */
+  getCopyMessage(result) {
+    if (result === "image") {
+      return t("notice.copySuccess", this.app);
+    }
+    if (result === "url") {
+      return `${t("notice.copyFailed", this.app)} URL copied instead.`;
+    }
+    return t("notice.copyFailed", this.app);
+  }
+  /**
    * 右键/长按打开菜单。
    */
   showContextMenu(previewId, clientX, clientY) {
@@ -1662,7 +1718,7 @@ var _PreviewController = class _PreviewController {
     if (!runtime) {
       return;
     }
-    const menu = new import_obsidian3.Menu();
+    const menu = new import_obsidian2.Menu();
     const addItem = (title, action) => {
       menu.addItem((item) => {
         item.setTitle(title).onClick(() => this.handleToolbarAction(previewId, action));
@@ -1693,6 +1749,11 @@ var _PreviewController = class _PreviewController {
     if (event.key === "Escape") {
       event.preventDefault();
       this.closePreview(active.id);
+      return;
+    }
+    if (event.key.toLowerCase() === "c" && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      this.handleToolbarAction(active.id, "copy");
       return;
     }
     if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) {
@@ -1791,7 +1852,7 @@ var _PreviewController = class _PreviewController {
       return true;
     }
     if (!settings.pinCoverMode) {
-      new import_obsidian3.Notice(`Pin maximum is ${settings.pinMaximum}.`);
+      new import_obsidian2.Notice(`Pin maximum is ${settings.pinMaximum}.`);
       return false;
     }
     const queue = this.pinQueue.get(doc) ?? [];
@@ -1862,9 +1923,10 @@ var _PreviewController = class _PreviewController {
   }
   /**
    * 从鼠标事件中解析目标图片。
-   * 优先走 target/composedPath，最后回退到 elementFromPoint。
+   * 只接受事件目标或事件路径中的图片，避免 Obsidian 图片缩放控件的点击
+   * 在 elementFromPoint 反查时误命中图片并打开预览。
    */
-  resolveImageFromMouseEvent(doc, event) {
+  resolveImageFromMouseEvent(event) {
     const target = event.target;
     if (target instanceof HTMLImageElement) {
       return target;
@@ -1881,16 +1943,6 @@ var _PreviewController = class _PreviewController {
         if (node instanceof HTMLImageElement) {
           return node;
         }
-      }
-    }
-    const hit = doc.elementFromPoint(event.clientX, event.clientY);
-    if (hit instanceof HTMLImageElement) {
-      return hit;
-    }
-    if (hit instanceof Element) {
-      const closest = hit.closest("img");
-      if (closest instanceof HTMLImageElement) {
-        return closest;
       }
     }
     return null;
@@ -1971,11 +2023,11 @@ var _PreviewController = class _PreviewController {
   async copyImageName(rawName) {
     const imageName = rawName.trim();
     if (!imageName) {
-      new import_obsidian3.Notice(t("notice.copyNameFailed", this.app));
+      new import_obsidian2.Notice(t("notice.copyNameFailed", this.app));
       return;
     }
     const copied = await this.clipboardService.copyPlainText(imageName);
-    new import_obsidian3.Notice(t(copied ? "notice.copyNameSuccess" : "notice.copyNameFailed", this.app));
+    new import_obsidian2.Notice(t(copied ? "notice.copyNameSuccess" : "notice.copyNameFailed", this.app));
   }
   /**
    * 等待图片加载完成。
@@ -2033,7 +2085,7 @@ _PreviewController.NORMAL_BOTTOM_RESERVE_WITH_GALLERY = 200;
 var PreviewController = _PreviewController;
 
 // src/settings.ts
-var import_obsidian4 = require("obsidian");
+var import_obsidian3 = require("obsidian");
 var SETTINGS_SCHEMA_VERSION = 1;
 var DEFAULT_SETTINGS = {
   schemaVersion: SETTINGS_SCHEMA_VERSION,
@@ -2074,7 +2126,7 @@ var HOTKEY_OPTIONS = {
   ["shift-alt" /* ShiftAlt */]: "Shift + Alt",
   ["ctrl-shift-alt" /* CtrlShiftAlt */]: "Ctrl + Shift + Alt"
 };
-var ImagesPreviewSettingTab = class extends import_obsidian4.PluginSettingTab {
+var ImagesPreviewSettingTab = class extends import_obsidian3.PluginSettingTab {
   /**
    * 构造设置页。
    */
@@ -2088,7 +2140,7 @@ var ImagesPreviewSettingTab = class extends import_obsidian4.PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    new import_obsidian4.Setting(containerEl).setName(t("settings.title", this.app)).setHeading();
+    new import_obsidian3.Setting(containerEl).setName(t("settings.title", this.app)).setHeading();
     this.renderLanguageSetting(containerEl);
     this.renderModeSetting(containerEl);
     this.renderTriggerSetting(containerEl);
@@ -2101,7 +2153,7 @@ var ImagesPreviewSettingTab = class extends import_obsidian4.PluginSettingTab {
    * 渲染界面语言配置。
    */
   renderLanguageSetting(containerEl) {
-    new import_obsidian4.Setting(containerEl).setName(t("settings.uiLanguage", this.app)).addDropdown((dropdown) => {
+    new import_obsidian3.Setting(containerEl).setName(t("settings.uiLanguage", this.app)).addDropdown((dropdown) => {
       dropdown.addOption("auto" /* Auto */, t("language.auto", this.app)).addOption("zh" /* Zh */, t("language.zh", this.app)).addOption("en" /* En */, t("language.en", this.app)).setValue(this.plugin.settings.uiLanguage).onChange(async (value) => {
         this.plugin.settings.uiLanguage = value;
         await this.plugin.saveSettings();
@@ -2113,7 +2165,7 @@ var ImagesPreviewSettingTab = class extends import_obsidian4.PluginSettingTab {
    * 渲染模式配置。
    */
   renderModeSetting(containerEl) {
-    new import_obsidian4.Setting(containerEl).setName(t("settings.mode", this.app)).addDropdown((dropdown) => {
+    new import_obsidian3.Setting(containerEl).setName(t("settings.mode", this.app)).addDropdown((dropdown) => {
       dropdown.addOption("normal" /* Normal */, t("mode.normal", this.app)).addOption("pin" /* Pin */, t("mode.pin", this.app)).setValue(this.plugin.settings.mode).onChange(async (value) => {
         this.plugin.settings.mode = value;
         await this.plugin.saveSettings();
@@ -2125,7 +2177,7 @@ var ImagesPreviewSettingTab = class extends import_obsidian4.PluginSettingTab {
    * 渲染触发范围与链接图片配置。
    */
   renderTriggerSetting(containerEl) {
-    const triggerScopeSetting = new import_obsidian4.Setting(containerEl).setName(t("settings.triggerScope", this.app)).setDesc(t("settings.triggerScopeHint", this.app));
+    const triggerScopeSetting = new import_obsidian3.Setting(containerEl).setName(t("settings.triggerScope", this.app)).setDesc(t("settings.triggerScopeHint", this.app));
     triggerScopeSetting.addDropdown((dropdown) => {
       dropdown.addOption("markdown-only" /* MarkdownOnly */, t("scope.markdown", this.app)).addOption("markdown-and-common" /* MarkdownAndCommon */, t("scope.common", this.app)).addOption("global" /* Global */, t("scope.global", this.app)).setValue(this.plugin.settings.triggerScope).onChange(async (value) => {
         this.plugin.settings.triggerScope = value;
@@ -2133,7 +2185,7 @@ var ImagesPreviewSettingTab = class extends import_obsidian4.PluginSettingTab {
         this.plugin.controller.refreshSelectors();
       });
     });
-    new import_obsidian4.Setting(containerEl).setName(t("settings.includeLinked", this.app)).addToggle((toggle) => {
+    new import_obsidian3.Setting(containerEl).setName(t("settings.includeLinked", this.app)).addToggle((toggle) => {
       toggle.setValue(this.plugin.settings.includeLinkedImages).onChange(async (value) => {
         this.plugin.settings.includeLinkedImages = value;
         await this.plugin.saveSettings();
@@ -2145,7 +2197,7 @@ var ImagesPreviewSettingTab = class extends import_obsidian4.PluginSettingTab {
    * 渲染 Pin 模式参数。
    */
   renderPinSetting(containerEl) {
-    const pinMaximumSetting = new import_obsidian4.Setting(containerEl).setName(t("settings.pinMaximum", this.app));
+    const pinMaximumSetting = new import_obsidian3.Setting(containerEl).setName(t("settings.pinMaximum", this.app));
     const updatePinMaximumHint = (value) => {
       pinMaximumSetting.setDesc(
         t("settings.pinMaximumHint", this.app).replace("{count}", String(value))
@@ -2159,7 +2211,7 @@ var ImagesPreviewSettingTab = class extends import_obsidian4.PluginSettingTab {
         await this.plugin.saveSettings();
       });
     });
-    new import_obsidian4.Setting(containerEl).setName(t("settings.pinCoverMode", this.app)).addToggle((toggle) => {
+    new import_obsidian3.Setting(containerEl).setName(t("settings.pinCoverMode", this.app)).addToggle((toggle) => {
       toggle.setValue(this.plugin.settings.pinCoverMode).onChange(async (value) => {
         this.plugin.settings.pinCoverMode = value;
         await this.plugin.saveSettings();
@@ -2170,13 +2222,13 @@ var ImagesPreviewSettingTab = class extends import_obsidian4.PluginSettingTab {
    * 渲染视觉与画廊配置。
    */
   renderViewSetting(containerEl) {
-    new import_obsidian4.Setting(containerEl).setName(t("settings.gallery", this.app)).addToggle((toggle) => {
+    new import_obsidian3.Setting(containerEl).setName(t("settings.gallery", this.app)).addToggle((toggle) => {
       toggle.setValue(this.plugin.settings.gallery.enabled).onChange(async (value) => {
         this.plugin.settings.gallery.enabled = value;
         await this.plugin.saveSettings();
       });
     });
-    const moveSpeedSetting = new import_obsidian4.Setting(containerEl).setName(t("settings.moveSpeed", this.app));
+    const moveSpeedSetting = new import_obsidian3.Setting(containerEl).setName(t("settings.moveSpeed", this.app));
     const updateMoveSpeedHint = (value) => {
       moveSpeedSetting.setDesc(
         t("settings.moveSpeedHint", this.app).replace("{speed}", String(value))
@@ -2195,13 +2247,13 @@ var ImagesPreviewSettingTab = class extends import_obsidian4.PluginSettingTab {
    * 渲染热键配置。
    */
   renderHotkeySetting(containerEl) {
-    new import_obsidian4.Setting(containerEl).setName(t("settings.moveHotkey", this.app)).setDesc(t("settings.moveHotkeyHint", this.app)).addDropdown((dropdown) => {
+    new import_obsidian3.Setting(containerEl).setName(t("settings.moveHotkey", this.app)).setDesc(t("settings.moveHotkeyHint", this.app)).addDropdown((dropdown) => {
       this.fillHotkeyOptions(dropdown, this.plugin.settings.moveHotkey, async (value) => {
         this.plugin.settings.moveHotkey = value;
         await this.plugin.saveSettings();
       });
     });
-    new import_obsidian4.Setting(containerEl).setName(t("settings.switchHotkey", this.app)).setDesc(t("settings.switchHotkeyHint", this.app)).addDropdown((dropdown) => {
+    new import_obsidian3.Setting(containerEl).setName(t("settings.switchHotkey", this.app)).setDesc(t("settings.switchHotkeyHint", this.app)).addDropdown((dropdown) => {
       this.fillHotkeyOptions(dropdown, this.plugin.settings.switchHotkey, async (value) => {
         this.plugin.settings.switchHotkey = value;
         await this.plugin.saveSettings();
@@ -2212,7 +2264,7 @@ var ImagesPreviewSettingTab = class extends import_obsidian4.PluginSettingTab {
    * 渲染移动端交互配置。
    */
   renderMobileSetting(containerEl) {
-    new import_obsidian4.Setting(containerEl).setName(t("settings.mobileGesture", this.app)).addToggle((toggle) => {
+    new import_obsidian3.Setting(containerEl).setName(t("settings.mobileGesture", this.app)).addToggle((toggle) => {
       toggle.setValue(this.plugin.settings.interaction.enableMobileGestures).onChange(async (value) => {
         this.plugin.settings.interaction.enableMobileGestures = value;
         await this.plugin.saveSettings();
@@ -2371,7 +2423,7 @@ var SettingsStore = class {
 };
 
 // src/main.ts
-var ImagesPreviewPlugin = class extends import_obsidian5.Plugin {
+var ImagesPreviewPlugin = class extends import_obsidian4.Plugin {
   /**
    * 插件加载生命周期。
    */
@@ -2415,7 +2467,7 @@ var ImagesPreviewPlugin = class extends import_obsidian5.Plugin {
       callback: async () => {
         const mode = this.controller.toggleMode();
         await this.saveSettings();
-        new import_obsidian5.Notice(mode === "normal" /* Normal */ ? t("mode.normal", this.app) : t("mode.pin", this.app));
+        new import_obsidian4.Notice(mode === "normal" /* Normal */ ? t("mode.normal", this.app) : t("mode.pin", this.app));
       }
     });
     this.addCommand({
