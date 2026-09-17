@@ -27,8 +27,8 @@
 - 安装依赖：`npm install`
 - 开发监听构建：`npm run dev`
 - 生产构建：`npm run build`
-- 监听构建并同步到 Vault：`npm run dev:vault`（需先设置 `OBSIDIAN_VAULT_DIR`）
-- 生产构建并同步到 Vault：`npm run build:vault`（需先设置 `OBSIDIAN_VAULT_DIR`）
+- 监听构建并同步到 Vault：`npm run dev:vault`（读取项目根目录 `.env`，也支持 `OBSIDIAN_VAULT_DIR` 覆盖）
+- 生产构建并同步到 Vault：`npm run build:vault`（读取项目根目录 `.env`，也支持 `OBSIDIAN_VAULT_DIR` 覆盖）
 - 类型检查：`npm run typecheck`
 - 单测（交互模式）：`npm run test`
 - 单测（一次性）：`npm run test:run`
@@ -111,3 +111,4 @@
 - 2026-03-13：移除图片背景色选择功能（设置项、依赖、样式与专属测试），预览图片背景回退为固定透明。
 - 2026-03-14：新增 ESLint 基础配置与 `eslint-plugin-obsidian` 集成，补充 `lint/lint:fix` 命令与提交流程检查项。
 - 2026-03-16：新增 `dev:vault/build:vault` 无软链接部署命令，支持构建后自动同步到 Vault 插件目录并清理同名软链接。
+- 2026-09-17：Vault 部署命令改为读取项目根目录 `.env`，不再依赖当前终端继承 `OBSIDIAN_VAULT_DIR`。

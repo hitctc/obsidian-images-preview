@@ -1,12 +1,37 @@
 import esbuild from "esbuild";
 import process from "node:process";
 import path from "node:path";
-import { promises as fs } from "node:fs";
+import { promises as fs, readFileSync } from "node:fs";
 import builtins from "builtin-modules";
 
 const production = process.argv[2] === "production";
-const vaultDir = process.env.OBSIDIAN_VAULT_DIR?.trim() ?? "";
+const vaultMode = process.argv.includes("--vault");
+const vaultDir = process.env.OBSIDIAN_VAULT_DIR?.trim() || readLocalVaultDir();
 const artifactFiles = ["main.js", "manifest.json", "styles.css"];
+
+/**
+ * 从项目根目录的本地 .env 读取 Vault 路径，避免构建依赖终端启动方式。
+ */
+function readLocalVaultDir() {
+  try {
+    const content = readFileSync(path.resolve(".env"), "utf8");
+    const line = content
+      .split(/\r?\n/)
+      .find((entry) => entry.trim().startsWith("OBSIDIAN_VAULT_DIR="));
+    if (!line) {
+      return "";
+    }
+
+    const value = line.slice("OBSIDIAN_VAULT_DIR=".length).trim();
+    return value.replace(/^([\"'])(.*)\1$/, "$2").trim();
+  } catch {
+    return "";
+  }
+}
+
+if (vaultMode && !vaultDir) {
+  throw new Error("未配置 Vault 路径，请设置 OBSIDIAN_VAULT_DIR 或填写项目根目录 .env。");
+}
 
 /**
  * 读取并校验 manifest，保证部署目录始终和插件 id 一致。
@@ -28,7 +53,7 @@ async function readPluginId() {
  * 将产物写入 Vault 插件目录，并自动替换掉同名软链接目录。
  */
 async function syncArtifactsToVault() {
-  if (!vaultDir) {
+  if (!vaultMode || !vaultDir) {
     return;
   }
 
@@ -72,7 +97,7 @@ const vaultSyncPlugin = {
   name: "vault-sync-plugin",
   setup(build) {
     build.onEnd(async (result) => {
-      if (!vaultDir || result.errors.length > 0) {
+      if (!vaultMode || !vaultDir || result.errors.length > 0) {
         return;
       }
 

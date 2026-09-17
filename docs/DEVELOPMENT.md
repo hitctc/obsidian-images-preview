@@ -35,7 +35,13 @@ npm run test
 
 ## 4. 无软链接部署到 Vault（推荐）
 
-1. 设置 Vault 根目录环境变量（包含 `.obsidian` 的目录）：
+1. 在项目根目录创建本地 `.env`（该文件已被 Git 忽略），填写 Vault 根目录，即包含 `.obsidian` 的目录：
+
+```dotenv
+OBSIDIAN_VAULT_DIR="<your-vault>"
+```
+
+也可以通过环境变量临时覆盖 `.env` 中的路径：
 
 ```bash
 export OBSIDIAN_VAULT_DIR="<your-vault>"
@@ -55,13 +61,16 @@ npm run dev:vault
 
 说明：
 
+- `build:vault` 和 `dev:vault` 会自动读取项目根目录 `.env`，不依赖当前终端是否加载 shell 配置。
+- 环境变量 `OBSIDIAN_VAULT_DIR` 的优先级高于 `.env`，适合临时切换 Vault。
 - 同步目标目录固定为 `<vault>/.obsidian/plugins/<manifest.id>`。
 - 若目标目录是软链接，构建脚本会自动替换为真实目录，避免跨设备路径失效。
 - 会同步 `main.js`、`manifest.json`、`styles.css`。
 
 ## 5. 多设备协作建议
 
-- 每台设备分别设置自己的 `OBSIDIAN_VAULT_DIR`。
+- 每台设备分别维护本机未提交的 `.env`，不要把本机绝对路径写入仓库。
+- 也可以在每台设备上设置自己的 `OBSIDIAN_VAULT_DIR` 环境变量。
 - 拉取最新代码后先执行 `npm run build:vault`，再在 Obsidian 里重载插件。
 - 不要把本机绝对路径写入仓库文档或脚本默认值。
 
