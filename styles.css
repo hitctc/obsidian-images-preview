@@ -33,8 +33,8 @@
 
 /* Active preview hint (only around image area) */
 .oip-preview-shell.is-active .oip-preview-image {
-  outline: 2px solid var(--interactive-accent);
-  outline-offset: 2px;
+  outline: 3px solid var(--interactive-accent);
+  outline-offset: -3px;
 }
 
 /* Rendered image */
@@ -47,8 +47,10 @@
   border-radius: var(--oip-corner-radius);
 }
 
-.oip-clickable-image {
-  cursor: zoom-in;
+/* Mark the source image without changing its layout dimensions. */
+.oip-active-source-image {
+  outline: 3px solid var(--interactive-accent) !important;
+  outline-offset: -3px;
 }
 
 /* Copy feedback is rendered inside the overlay, above the mask and toolbar. */

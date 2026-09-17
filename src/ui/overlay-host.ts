@@ -53,12 +53,11 @@ export class OverlayHost {
    */
   public openPreview(options: OpenPreviewOptions): MountedPreview {
     this.ensureRoot();
-    this.updateMask(options.mode, options.onMaskClick);
 
     if (options.mode === Mode.Normal) {
       this.closeAll();
-      this.updateMask(options.mode, options.onMaskClick);
     }
+    this.updateMask(options.mode, options.onMaskClick);
 
     const previewId = this.createPreviewId();
     const shellEl = this.createShell(options.mode);
@@ -309,7 +308,7 @@ export class OverlayHost {
   }
 
   /**
-   * 隐藏遮罩。
+   * 隐藏遮罩并解除点击监听；如果遮罩本来就是隐藏状态，则不重复触发布局切换。
    */
   private hideMask(): void {
     if (!this.maskEl) {
@@ -319,7 +318,9 @@ export class OverlayHost {
       this.detachMaskClick();
       this.detachMaskClick = null;
     }
-    this.maskEl.toggleClass("is-visible", false);
+    if (this.maskEl.classList.contains("is-visible")) {
+      this.maskEl.toggleClass("is-visible", false);
+    }
   }
 
   /**

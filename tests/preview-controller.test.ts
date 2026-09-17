@@ -51,6 +51,7 @@ type PreviewControllerTestSurface = {
   handleToolbarAction: (previewId: string, action: ToolbarAction) => void;
   handleKeyDown: (doc: Document, event: KeyboardEvent) => void;
   getBottomReservedHeight: (preview: MountedPreview, allItemCount: number) => number;
+  markSourceImage: (image: HTMLImageElement) => void;
   clipboardService: {
     copyPlainText: (value: string) => Promise<boolean>;
   };
@@ -75,6 +76,7 @@ describe("PreviewController", () => {
     const clickCall = registerDomEvent.mock.calls.find((call) => call[1] === "click");
     expect(clickCall).toBeTruthy();
     expect(clickCall?.[3]).toBe(true);
+    expect(registerDomEvent.mock.calls.some((call) => call[1] === "mouseover")).toBe(false);
   });
 
   it("opens preview on image click without requiring modifier keys", async () => {
@@ -188,6 +190,21 @@ describe("PreviewController", () => {
 
     consoleSpy.mockRestore();
     expect(matched).toBe(true);
+  });
+
+  it("keeps the latest source image marked until another image is previewed", () => {
+    const controller = createController();
+    const surface = getTestSurface(controller);
+    const firstImage = document.createElement("img");
+    const secondImage = document.createElement("img");
+
+    surface.markSourceImage(firstImage);
+    expect(firstImage.classList.contains("oip-active-source-image")).toBe(true);
+
+    surface.markSourceImage(secondImage);
+
+    expect(firstImage.classList.contains("oip-active-source-image")).toBe(false);
+    expect(secondImage.classList.contains("oip-active-source-image")).toBe(true);
   });
 
   it("copies the active preview image with Ctrl+C or Cmd+C", () => {

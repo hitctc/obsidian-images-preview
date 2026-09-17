@@ -57,7 +57,7 @@ var LOCALES = {
     "toolbar.copy": "Copy",
     "toolbar.copyName": "Copy Name",
     "toolbar.close": "Close",
-    "notice.copySuccess": "Image copied.",
+    "notice.copySuccess": "Image copied",
     "notice.copyFailed": "Image copy failed.",
     "notice.copyNameSuccess": "Image name copied.",
     "notice.copyNameFailed": "Image name copy failed.",
@@ -98,7 +98,7 @@ var LOCALES = {
     "toolbar.copy": "\u590D\u5236",
     "toolbar.copyName": "\u590D\u5236\u56FE\u7247\u540D\u79F0",
     "toolbar.close": "\u5173\u95ED",
-    "notice.copySuccess": "\u56FE\u7247\u5DF2\u590D\u5236\u3002",
+    "notice.copySuccess": "\u56FE\u7247\u5DF2\u590D\u5236",
     "notice.copyFailed": "\u56FE\u7247\u590D\u5236\u5931\u8D25\u3002",
     "notice.copyNameSuccess": "\u56FE\u7247\u540D\u79F0\u5DF2\u590D\u5236\u3002",
     "notice.copyNameFailed": "\u56FE\u7247\u540D\u79F0\u590D\u5236\u5931\u8D25\u3002",
@@ -822,11 +822,10 @@ var OverlayHost = class {
    */
   openPreview(options) {
     this.ensureRoot();
-    this.updateMask(options.mode, options.onMaskClick);
     if (options.mode === "normal" /* Normal */) {
       this.closeAll();
-      this.updateMask(options.mode, options.onMaskClick);
     }
+    this.updateMask(options.mode, options.onMaskClick);
     const previewId = this.createPreviewId();
     const shellEl = this.createShell(options.mode);
     const imageEl = this.createImage();
@@ -1038,7 +1037,7 @@ var OverlayHost = class {
     this.hideMask();
   }
   /**
-   * 隐藏遮罩。
+   * 隐藏遮罩并解除点击监听；如果遮罩本来就是隐藏状态，则不重复触发布局切换。
    */
   hideMask() {
     if (!this.maskEl) {
@@ -1048,7 +1047,9 @@ var OverlayHost = class {
       this.detachMaskClick();
       this.detachMaskClick = null;
     }
-    this.maskEl.toggleClass("is-visible", false);
+    if (this.maskEl.classList.contains("is-visible")) {
+      this.maskEl.toggleClass("is-visible", false);
+    }
   }
   /**
    * 创建单个预览外壳。
@@ -1230,6 +1231,7 @@ var _PreviewController = class _PreviewController {
     this.runtimes = /* @__PURE__ */ new Map();
     this.pinQueue = /* @__PURE__ */ new Map();
     this.boundDocs = /* @__PURE__ */ new Set();
+    this.highlightedSourceImage = null;
     this.selector = "";
     this.app = app;
     this.plugin = plugin;
@@ -1336,6 +1338,7 @@ var _PreviewController = class _PreviewController {
    */
   destroy() {
     this.closeAll();
+    this.clearSourceImageHighlight();
     this.hosts.forEach((host) => host.destroy());
     this.hosts.clear();
     this.pinQueue.clear();
@@ -1366,13 +1369,6 @@ var _PreviewController = class _PreviewController {
       },
       true
     );
-    this.plugin.registerDomEvent(doc, "mouseover", (event) => {
-      const image = event.target?.closest("img");
-      if (!image || !this.isTargetImage(image)) {
-        return;
-      }
-      image.classList.add("oip-clickable-image");
-    });
     this.plugin.registerDomEvent(doc, "keydown", (event) => {
       this.handleKeyDown(doc, event);
     });
@@ -1423,6 +1419,7 @@ var _PreviewController = class _PreviewController {
   async initializePreviewRuntime(doc, preview, sourceImage, allItems, activeIndex) {
     const stateMachine = new PreviewStateMachine();
     stateMachine.open();
+    this.markSourceImage(sourceImage);
     const imageLoaded = await this.waitForImageLoad(preview.imageEl);
     if (!imageLoaded) {
       preview.imageEl.src = sourceImage.currentSrc || sourceImage.src;
@@ -1456,8 +1453,7 @@ var _PreviewController = class _PreviewController {
       stateMachine,
       detachInput,
       lastPointer: { x: 0, y: 0 },
-      openedAt: Date.now(),
-      restoreBorder: this.applySourceImageBorder(sourceImage)
+      openedAt: Date.now()
     };
     this.runtimes.set(preview.id, runtime);
     if (this.getSettings().mode === "pin" /* Pin */) {
@@ -1806,7 +1802,6 @@ var _PreviewController = class _PreviewController {
       return;
     }
     runtime.detachInput();
-    runtime.restoreBorder?.();
     runtime.stateMachine.close();
     this.hosts.get(runtime.doc)?.closePreview(previewId);
     this.runtimes.delete(previewId);
@@ -2055,27 +2050,22 @@ var _PreviewController = class _PreviewController {
     });
   }
   /**
-   * 给原图加边框高亮，并返回恢复函数。
+   * 标记最近一次预览的原图，直到下一张图片被预览时才切换标记。
    */
-  applySourceImageBorder(sourceImage) {
-    const settings = this.getSettings();
-    if (!settings.imageBorderEnabled) {
-      return void 0;
+  markSourceImage(sourceImage) {
+    const markerClass = "oip-active-source-image";
+    if (this.highlightedSourceImage && this.highlightedSourceImage !== sourceImage) {
+      this.highlightedSourceImage.classList.remove(markerClass);
     }
-    const style = sourceImage.style;
-    const prev = {
-      width: style.borderWidth,
-      style: style.borderStyle,
-      color: style.borderColor
-    };
-    style.borderWidth = settings.imageBorderWidth;
-    style.borderStyle = settings.imageBorderStyle;
-    style.borderColor = settings.imageBorderColor;
-    return () => {
-      style.borderWidth = prev.width;
-      style.borderStyle = prev.style;
-      style.borderColor = prev.color;
-    };
+    sourceImage.classList.add(markerClass);
+    this.highlightedSourceImage = sourceImage;
+  }
+  /**
+   * 清理原图标记，避免插件卸载后把状态留在编辑器 DOM 中。
+   */
+  clearSourceImageHighlight() {
+    this.highlightedSourceImage?.classList.remove("oip-active-source-image");
+    this.highlightedSourceImage = null;
   }
 };
 // 普通模式下为“名称 + 固定工具栏”预留底部空间，避免高长图遮挡。

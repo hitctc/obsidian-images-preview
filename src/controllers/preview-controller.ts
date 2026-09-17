@@ -36,7 +36,6 @@ interface PreviewRuntime {
   detachInput: () => void;
   lastPointer: { x: number; y: number };
   openedAt: number;
-  restoreBorder?: () => void;
 }
 
 /**
@@ -59,6 +58,7 @@ export class PreviewController {
   private readonly runtimes = new Map<string, PreviewRuntime>();
   private readonly pinQueue = new Map<Document, string[]>();
   private readonly boundDocs = new Set<Document>();
+  private highlightedSourceImage: HTMLImageElement | null = null;
 
   private selector = "";
 
@@ -186,6 +186,7 @@ export class PreviewController {
    */
   public destroy(): void {
     this.closeAll();
+    this.clearSourceImageHighlight();
     this.hosts.forEach((host) => host.destroy());
     this.hosts.clear();
     this.pinQueue.clear();
@@ -220,14 +221,6 @@ export class PreviewController {
       },
       true
     );
-
-    this.plugin.registerDomEvent(doc, "mouseover", (event: MouseEvent) => {
-      const image = (event.target as HTMLElement | null)?.closest("img") as HTMLImageElement | null;
-      if (!image || !this.isTargetImage(image)) {
-        return;
-      }
-      image.classList.add("oip-clickable-image");
-    });
 
     this.plugin.registerDomEvent(doc, "keydown", (event: KeyboardEvent) => {
       this.handleKeyDown(doc, event);
@@ -294,6 +287,7 @@ export class PreviewController {
   ): Promise<void> {
     const stateMachine = new PreviewStateMachine();
     stateMachine.open();
+    this.markSourceImage(sourceImage);
 
     const imageLoaded = await this.waitForImageLoad(preview.imageEl);
     if (!imageLoaded) {
@@ -333,8 +327,7 @@ export class PreviewController {
       stateMachine,
       detachInput,
       lastPointer: { x: 0, y: 0 },
-      openedAt: Date.now(),
-      restoreBorder: this.applySourceImageBorder(sourceImage)
+      openedAt: Date.now()
     };
 
     this.runtimes.set(preview.id, runtime);
@@ -734,7 +727,6 @@ export class PreviewController {
     }
 
     runtime.detachInput();
-    runtime.restoreBorder?.();
     runtime.stateMachine.close();
 
     this.hosts.get(runtime.doc)?.closePreview(previewId);
@@ -1024,29 +1016,23 @@ export class PreviewController {
   }
 
   /**
-   * 给原图加边框高亮，并返回恢复函数。
+   * 标记最近一次预览的原图，直到下一张图片被预览时才切换标记。
    */
-  private applySourceImageBorder(sourceImage: HTMLImageElement): (() => void) | undefined {
-    const settings = this.getSettings();
-    if (!settings.imageBorderEnabled) {
-      return undefined;
+  private markSourceImage(sourceImage: HTMLImageElement): void {
+    const markerClass = "oip-active-source-image";
+    if (this.highlightedSourceImage && this.highlightedSourceImage !== sourceImage) {
+      this.highlightedSourceImage.classList.remove(markerClass);
     }
 
-    const style = sourceImage.style;
-    const prev = {
-      width: style.borderWidth,
-      style: style.borderStyle,
-      color: style.borderColor
-    };
+    sourceImage.classList.add(markerClass);
+    this.highlightedSourceImage = sourceImage;
+  }
 
-    style.borderWidth = settings.imageBorderWidth;
-    style.borderStyle = settings.imageBorderStyle;
-    style.borderColor = settings.imageBorderColor;
-
-    return () => {
-      style.borderWidth = prev.width;
-      style.borderStyle = prev.style;
-      style.borderColor = prev.color;
-    };
+  /**
+   * 清理原图标记，避免插件卸载后把状态留在编辑器 DOM 中。
+   */
+  private clearSourceImageHighlight(): void {
+    this.highlightedSourceImage?.classList.remove("oip-active-source-image");
+    this.highlightedSourceImage = null;
   }
 }

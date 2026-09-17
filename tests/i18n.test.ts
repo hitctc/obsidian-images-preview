@@ -13,6 +13,7 @@ describe("i18n", () => {
     setLocalePreference("zh");
     expect(t("toolbar.copy")).toBe("复制");
     expect(t("toolbar.copyName")).toBe("复制图片名称");
+    expect(t("notice.copySuccess")).toBe("图片已复制");
     expect(t("notice.copyNameSuccess")).toBe("图片名称已复制。");
     expect(t("settings.uiLanguage")).toBe("界面语言");
     expect(t("settings.triggerScopeHint")).toBe(
@@ -28,6 +29,7 @@ describe("i18n", () => {
     setLocalePreference("en");
     expect(t("toolbar.copy")).toBe("Copy");
     expect(t("toolbar.copyName")).toBe("Copy Name");
+    expect(t("notice.copySuccess")).toBe("Image copied");
     expect(t("notice.copyNameSuccess")).toBe("Image name copied.");
     expect(t("settings.uiLanguage")).toBe("Interface language");
     expect(t("settings.triggerScopeHint")).toBe(

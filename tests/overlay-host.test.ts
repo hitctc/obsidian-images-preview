@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { OverlayHost } from "../src/ui/overlay-host";
 import { DEFAULT_SETTINGS } from "../src/settings";
 import { PreviewMode, type ImageItem, type PluginSettings, type ToolbarAction } from "../src/types";
@@ -111,6 +111,31 @@ describe("OverlayHost", () => {
     const mask = document.querySelector(".oip-overlay-mask");
     expect(mask?.classList.contains("is-visible")).toBe(true);
 
+    host.destroy();
+  });
+
+  it("shows the normal-mode mask only once when opening a preview", () => {
+    const host = new OverlayHost({} as never, document);
+    const settings = createSettings();
+    const item = createItems()[0];
+    const toggleSpy = vi.spyOn(DOMTokenList.prototype, "toggle");
+
+    host.openPreview({
+      item,
+      settings,
+      mode: PreviewMode.Normal,
+      activeIndex: 0,
+      allItems: [item],
+      onToolbarAction: () => undefined,
+      onGallerySelect: () => undefined,
+      onMaskClick: () => undefined
+    });
+
+    const maskToggles = toggleSpy.mock.calls.filter(([className]) => className === "is-visible");
+    expect(maskToggles).toHaveLength(1);
+    expect(maskToggles[0]?.[1]).toBe(true);
+
+    toggleSpy.mockRestore();
     host.destroy();
   });
 
